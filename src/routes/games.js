@@ -13,6 +13,20 @@ async function gameRoutes(fastify, options) {
       createdAt: { type: "string", format: "date-time" },
     },
   };
+  const gameParamsSchema = {
+    type: "object",
+    required: ["id"],
+    properties: {
+      id: {
+        type: "string",
+        description: "Hexadecimal ObjectId do MongoDB",
+      },
+    },
+  };
+  const gameErrorResponseSchema = {
+    type: "object",
+    properties: { error: { type: "string" } },
+  };
 
   fastify.get(
     "/games",
@@ -104,26 +118,11 @@ async function gameRoutes(fastify, options) {
       schema: {
         tags: ["Games"],
         summary: "Buscar jogo por ID",
-        params: {
-          type: "object",
-          required: ["id"],
-          properties: {
-            id: {
-              type: "string",
-              description: "Hexadecimal ObjectId do MongoDB",
-            },
-          },
-        },
+        params: gameParamsSchema,
         response: {
           200: gameResponseSchema,
-          400: {
-            type: "object",
-            properties: { error: { type: "string" } },
-          },
-          404: {
-            type: "object",
-            properties: { error: { type: "string" } },
-          },
+          400: gameErrorResponseSchema,
+          404: gameErrorResponseSchema,
         },
       },
     },
@@ -140,6 +139,84 @@ async function gameRoutes(fastify, options) {
       }
 
       return game;
+    },
+  );
+
+  fastify.put(
+    "/games/:id",
+    {
+      schema: {
+        tags: ["Games"],
+        summary: "Atualizar um jogo",
+        description: "Atualiza todos os dados de um jogo existente.",
+        params: gameParamsSchema,
+        body: {
+          type: "object",
+          required: ["title", "slug", "genre", "rating"],
+          properties: {
+            title: { type: "string", examples: ["Celeste"] },
+            slug: { type: "string", examples: ["celeste"] },
+            genre: { type: "string", examples: ["Platformer"] },
+            rating: { type: "number", examples: [10] },
+          },
+        },
+        response: {
+          200: gameResponseSchema,
+          400: gameErrorResponseSchema,
+          404: gameErrorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+
+      if (!ObjectId.isValid(id)) {
+        return reply.code(400).send({ error: "ID inválido" });
+      }
+
+      const { title, slug, genre, rating } = request.body;
+      const result = await gamesCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { title, slug, genre, rating } },
+      );
+
+      if (result.matchedCount === 0) {
+        return reply.code(404).send({ error: "Jogo não encontrado" });
+      }
+
+      return gamesCollection.findOne({ _id: new ObjectId(id) });
+    },
+  );
+
+  fastify.delete(
+    "/games/:id",
+    {
+      schema: {
+        tags: ["Games"],
+        summary: "Excluir um jogo",
+        params: gameParamsSchema,
+        response: {
+          400: gameErrorResponseSchema,
+          404: gameErrorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+
+      if (!ObjectId.isValid(id)) {
+        return reply.code(400).send({ error: "ID inválido" });
+      }
+
+      const result = await gamesCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+
+      if (result.deletedCount === 0) {
+        return reply.code(404).send({ error: "Jogo não encontrado" });
+      }
+
+      return reply.code(204).send();
     },
   );
 }

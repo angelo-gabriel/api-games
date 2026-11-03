@@ -79,6 +79,9 @@ Quando a aplicação estiver em execução, os endereços principais serão:
 - API: <http://localhost:3333>
 - Documentação Swagger: <http://localhost:3333/docs>
 
+Se a porta `3333` estiver ocupada por outro serviço, defina outra porta
+pela variável de ambiente `PORT`.
+
 Para encerrar, pressione `Ctrl+C`. O servidor trata os sinais `SIGINT` e
 `SIGTERM` e fecha a conexão da aplicação antes de sair.
 
@@ -165,6 +168,30 @@ Possíveis respostas de erro:
 - `400`: o ID informado não é um `ObjectId` hexadecimal válido.
 - `404`: não existe jogo com o ID informado.
 
+### Atualizar jogo
+
+```http
+PUT /api/v1/games/:id
+Content-Type: application/json
+```
+
+O corpo deve informar `title`, `slug`, `genre` e `rating`. O campo
+`createdAt` é preservado durante a atualização.
+
+Possíveis respostas de erro:
+
+- `400`: o ID informado não é um `ObjectId` hexadecimal válido.
+- `404`: não existe jogo com o ID informado.
+
+### Excluir jogo
+
+```http
+DELETE /api/v1/games/:id
+```
+
+A operação retorna `204` quando o jogo é excluído. Também pode retornar
+`400` para um ID inválido ou `404` quando o jogo não existe.
+
 ## Documentação da API
 
 Com o servidor em execução, acesse
@@ -212,4 +239,3 @@ Remova `node_modules` e reinstale as dependências:
 Remove-Item -Recurse -Force node_modules
 npm install
 ```
-
